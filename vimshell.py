@@ -39,18 +39,21 @@ class Yakuake(object):
         obj = self.bus.get_object(servicename, path)
         return dbus.Interface(obj, dbus_interface=interface)
 
-def open_file_in_new_shell(sessions, mainwindow, filename):
-    sessions.addSession()
-    sessions.runCommand('vim %s'%filename)
+    def open_file(self, filename, lineno=1):
+        self.sessions.addSession()
+        self.sessions.runCommand('vim -c ":%s" %s'%(lineno, filename))
 
-def get_filename():
-    try:
-        return sys.argv[1]
-    except IndexError:
+def get_args():
+    x = len(sys.argv)
+    if x == 1:
         notify("expected FILENAME")
         sys.exit(1)
+    elif x == 2:
+        return (sys.argv[1], None)
+    else:
+        return (sys.argv[1], sys.argv[2])
 
 if __name__ == '__main__':
-    filename = get_filename()
+    filename, lineno = get_args()
     ya = Yakuake()
-    open_file_in_new_shell(ya.sessions, ya.mainwindow, filename)
+    ya.open_file(filename, lineno)
