@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # vim: set fileencoding=utf-8 :
-# This program is Licenced under GPL, see http://www.gnu.org/copyleft/gpl.html
+# This program is licenced under the GPL, see http://www.gnu.org/copyleft/gpl.html
 # Author: Felix Hummel <felix@felixhummel.de>
 
 import dbus
@@ -23,25 +23,37 @@ if pynotify.init("vimshell"):
         n.set_timeout(NOTIFICATION_TIMEOUT_IN_MS)
         assert n.show(), "Failed to send notification"
 
-class Yakuake(object):
+class Bus(object):
     def __init__(self):
         try:
             self.bus = dbus.SessionBus()
         except:
             notify("Could not connect to dbus.")
-        try:
-            self.sessions = self._get_interface('org.kde.yakuake', '/yakuake/sessions', 'org.kde.yakuake')
-            self.mainwindow = self._get_interface('org.kde.yakuake', '/yakuake/MainWindow_1', 'org.freedesktop.MediaPlayer')
-        except:
-            notify("Could not connect to Yakuake.")
 
     def _get_interface(self, servicename, path, interface):
         obj = self.bus.get_object(servicename, path)
         return dbus.Interface(obj, dbus_interface=interface)
 
-    def open_file(self, filename, lineno=1):
+class Yakuake(Bus):
+    def __init__(self):
+        Bus.__init__(self)
+        try:
+            self.sessions = self._get_interface('org.kde.yakuake', '/yakuake/sessions', 'org.kde.yakuake')
+            self.tabs = self._get_interface('org.kde.yakuake', '/yakuake/tabs', 'org.kde.yakuake')
+            self.mainwindow = self._get_interface('org.kde.yakuake', '/yakuake/MainWindow_1', 'org.freedesktop.MediaPlayer')
+        except:
+            notify("Could not connect to Yakuake.")
+            import traceback
+            traceback.print_exc()
+
+    def open_file(self, filename, lineno=None):
         self.sessions.addSession()
-        self.sessions.runCommand('vim -c ":%s" %s'%(lineno, filename))
+        cmd = 'vim %s'%(filename)
+        if lineno:
+            cmd = 'vim +%s %s'%(lineno, filename)
+        self.sessions.runCommand(cmd)
+        session_id = self.sessions.activeSessionId()
+        self.tabs.setTabTitle(session_id, 'vimshell')
 
 def get_args():
     x = len(sys.argv)
