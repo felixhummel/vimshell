@@ -4,8 +4,7 @@
 # Author: Felix Hummel <felix@felixhummel.de>
 
 import dbus
-import glob
-import os
+import os.path
 import sys
 try:
     import pynotify
@@ -17,33 +16,28 @@ NOTIFICATION_TIMEOUT_IN_MS = 3000
 # notify ubuntu style, fall back to printing
 def notify(msg):
     print(msg)
+
 if pynotify.init("vimshell"):
     def notify(msg):
         n = pynotify.Notification("vimshell", msg)
         n.set_timeout(NOTIFICATION_TIMEOUT_IN_MS)
         assert n.show(), "Failed to send notification"
 
-def get_bus():
-    try:
-        bus = dbus.SessionBus()
-    except:
-        notify("Could not connect to dbus.")
-        sys.exit(1)
-    return bus
+class Yakuake(object):
+    def __init__(self):
+        try:
+            self.bus = dbus.SessionBus()
+        except:
+            notify("Could not connect to dbus.")
+        try:
+            self.sessions = self._get_interface('org.kde.yakuake', '/yakuake/sessions', 'org.kde.yakuake')
+            self.mainwindow = self._get_interface('org.kde.yakuake', '/yakuake/MainWindow_1', 'org.freedesktop.MediaPlayer')
+        except:
+            notify("Could not connect to Yakuake.")
 
-def _get_dbus_object(bus, servicename, path, interface):
-    obj = bus.get_object(servicename, path)
-    return dbus.Interface(obj, dbus_interface=interface)
-
-def get_yakuake(bus):
-    try:
-        sessions = _get_dbus_object(bus, 'org.kde.yakuake', '/yakuake/sessions', 'org.kde.yakuake')
-        mainwindow = dbus.Interface(bus.get_object('org.kde.yakuake', '/yakuake/MainWindow_1'),
-                  dbus_interface='org.freedesktop.MediaPlayer')
-    except:
-        notify("Could not connect to Yakuake.")
-        sys.exit(1)
-    return sessions, mainwindow
+    def _get_interface(self, servicename, path, interface):
+        obj = self.bus.get_object(servicename, path)
+        return dbus.Interface(obj, dbus_interface=interface)
 
 def open_file_in_new_shell(sessions, mainwindow, filename):
     sessions.addSession()
@@ -57,8 +51,6 @@ def get_filename():
         sys.exit(1)
 
 if __name__ == '__main__':
-    #filename = get_filename()
-    filename = '/tmp/x'
-    bus = get_bus()
-    sessions, mainwindow = get_yakuake(bus)
-    open_file_in_new_shell(sessions, mainwindow, filename)
+    filename = get_filename()
+    ya = Yakuake()
+    open_file_in_new_shell(ya.sessions, ya.mainwindow, filename)
