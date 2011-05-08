@@ -40,7 +40,7 @@ class Yakuake(Bus):
         try:
             self.sessions = self._get_interface('org.kde.yakuake', '/yakuake/sessions', 'org.kde.yakuake')
             self.tabs = self._get_interface('org.kde.yakuake', '/yakuake/tabs', 'org.kde.yakuake')
-            self.mainwindow = self._get_interface('org.kde.yakuake', '/yakuake/MainWindow_1', 'org.freedesktop.MediaPlayer')
+            self.mainwindow = self._get_interface('org.kde.yakuake', '/yakuake/MainWindow_1', 'org.kde.yakuake')
         except:
             notify("Could not connect to Yakuake.")
             import traceback
@@ -54,6 +54,7 @@ class Yakuake(Bus):
         self.sessions.runCommand(cmd)
         session_id = self.sessions.activeSessionId()
         self.tabs.setTabTitle(session_id, 'vimshell')
+        self.mainwindow.toggleWindowState()
 
 def get_args():
     x = len(sys.argv)
